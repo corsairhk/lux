@@ -367,7 +367,7 @@ private:
     void UpdateHash() const;
 
 public:
-    static const int32_t CURRENT_VERSION=1;
+    static const int32_t CURRENT_VERSION=1; //TODO: should the version be upgraded?
 
     CTxWitness wit; // Not const: can change without invalidating the txid cache
     
