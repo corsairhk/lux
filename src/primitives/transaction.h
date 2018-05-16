@@ -72,7 +72,6 @@ public:
     CScript scriptSig;
     uint32_t nSequence;
     CScript prevPubKey;
-    CScriptWitness scriptWitness; //! Only serialized through CTransaction
 
     /* Setting nSequence to this value for every input in a transaction
      * disables nLockTime. */
@@ -472,6 +471,16 @@ public:
     std::string ToString() const;
 
     bool GetCoinAge(uint64_t& nCoinAge) const;  // ppcoin: get transaction coin age
+
+    bool HasWitness() const
+    {
+        for (size_t i = 0; i < wit.vtxinwit.size(); i++) {
+            if (!wit.vtxinwit[i].scriptWitness.IsNull()) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 /** A mutable version of CTransaction. */
@@ -514,6 +523,19 @@ struct CMutableTransaction
         return !(a == b);
     }
 
+<<<<<<< HEAD
+=======
+    bool HasWitness() const
+    {
+        for (size_t i = 0; i < wit.vtxinwit.size(); i++) {
+            if (!wit.vtxinwit[i].scriptWitness.IsNull()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+>>>>>>> 727154c... Remove witness from CTxIn - possibly fixes empty witness stack in some TXs
 };
 
 /** Compute the cost of a transaction, as defined by BIP 141 */
