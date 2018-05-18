@@ -703,4 +703,7 @@ QString WalletModel::getRestorePath()
 QString WalletModel::getRestoreParam()
 {
     return restoreParam;
+bool WalletModel::IsSpendable(const CTxDestination& dest) const {
+    return IsMine(*wallet, dest) & ISMINE_SPENDABLE;
 }
+
