@@ -13,13 +13,10 @@
 
 class CTransaction;
 
-<<<<<<< HEAD
-=======
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 static const int WITNESS_SCALE_FACTOR = 4;
 
->>>>>>> cec2b0e... WIP: add versionbits, fix script and tx serialization
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
 {
