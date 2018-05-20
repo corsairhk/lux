@@ -210,15 +210,7 @@ public:
 
     bool IsDust(const CFeeRate &minRelayTxFee) const
     {
-        // "Dust" is defined in terms of CTransaction::minRelayTxFee, which has units duffs-per-kilobyte.
-        // If you'd pay more than 1/3 in fees to spend something, then we consider it dust.
-        // A typical txout is 34 bytes big, and will need a CTxIn of at least 148 bytes to spend
-        // i.e. total is 148 + 32 = 182 bytes. Default -minrelaytxfee is 10000 duffs per kB
-        // and that means that fee per txout is 182 * 10000 / 1000 = 1820 duffs.
-        // So dust is a txout less than 1820 *3 = 5460 duffs
-        // with default -minrelaytxfee = minRelayTxFee = 10000 duffs per kB.
-        size_t nSize = GetSerializeSize(SER_DISK,0)+148u;
-        return (nValue < 3*minRelayTxFee.GetFee(nSize));
+        return (nValue < GetDustThreshold(minRelayTxFee));
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
@@ -376,7 +368,6 @@ class CTransaction
 private:
     /** Memory only. */
     const uint256 hash;
-    void UpdateHash() const;
 
 public:
     static const int32_t CURRENT_VERSION=1; //TODO: should the version be upgraded?
@@ -398,24 +389,21 @@ public:
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
     const uint32_t nTime;
-    std::vector<CTxIn> vin;
-    std::vector<CTxOut> vout;
     const uint32_t nLockTime;
-    //const unsigned int nTime;
-
 
     /** Construct a CTransaction that qualifies as IsNull() */
     CTransaction();
 
     /** Convert a CMutableTransaction into a CTransaction. */
     CTransaction(const CMutableTransaction &tx);
+	CTransaction(CMutableTransaction &&tx);
 
     CTransaction& operator=(const CTransaction& tx);
 
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {=
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         SerializeTransaction(*this, s, ser_action, nType, nVersion);
         if (ser_action.ForRead()) {
             UpdateHash();
@@ -446,6 +434,13 @@ public:
 
     // Compute modified tx size for priority calculation (optionally given tx size)
     unsigned int CalculateModifiedSize(unsigned int nTxSize=0) const;
+
+    /**
+     * Get the total transaction size in bytes, including witness data.
+     * "Total Size" defined in BIP141 and BIP144.
+     * @return Total transaction size in bytes
+     */
+    unsigned int GetTotalSize() const;
 
     bool IsCoinBase() const
     {
@@ -492,8 +487,6 @@ struct CMutableTransaction
 
     int32_t nVersion;
     uint32_t nTime;
-    std::vector<CTxIn> vin;
-    std::vector<CTxOut> vout;
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -523,8 +516,6 @@ struct CMutableTransaction
         return !(a == b);
     }
 
-<<<<<<< HEAD
-=======
     bool HasWitness() const
     {
         for (size_t i = 0; i < wit.vtxinwit.size(); i++) {
@@ -535,7 +526,6 @@ struct CMutableTransaction
         return false;
     }
 
->>>>>>> 727154c... Remove witness from CTxIn - possibly fixes empty witness stack in some TXs
 };
 
 /** Compute the cost of a transaction, as defined by BIP 141 */

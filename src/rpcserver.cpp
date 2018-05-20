@@ -44,6 +44,9 @@ static bool fRPCInWarmup = true;
 static std::string rpcWarmupStatus("RPC server started");
 static CCriticalSection cs_rpcWarmup;
 
+/* Timer-creating functions */
+static std::vector<RPCTimerInterface*> timerInterfaces;
+
 //! These are created by StartRPCThreads, destroyed in StopRPCThreads
 static asio::io_service* rpc_io_service = NULL;
 static map<string, boost::shared_ptr<deadline_timer> > deadlineTimers;
@@ -1027,5 +1030,18 @@ std::string HelpExampleRpc(string methodname, string args)
            "\"method\": \"" +
            methodname + "\", \"params\": [" + args + "] }' -H 'content-type: text/plain;' http://127.0.0.1:51473/\n";
 }
+
+void RPCRegisterTimerInterface(RPCTimerInterface *iface)
+{
+    timerInterfaces.push_back(iface);
+}
+
+void RPCUnregisterTimerInterface(RPCTimerInterface *iface)
+{
+    std::vector<RPCTimerInterface*>::iterator i = std::find(timerInterfaces.begin(), timerInterfaces.end(), iface);
+    assert(i != timerInterfaces.end());
+    timerInterfaces.erase(i);
+}
+
 
 const CRPCTable tableRPC;

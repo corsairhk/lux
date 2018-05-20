@@ -645,50 +645,6 @@ bool IsFinalTx(const CTransaction& tx, int nBlockHeight, int64_t nBlockTime)
     return true;
 }
 
-/**
- * Check transaction inputs to mitigate two
- * potential denial-of-service attacks:
- *
- * 1. scriptSigs with extra data stuffed into them,
- *    not consumed by scriptPubKey (or P2SH script)
- * 2. P2SH scripts with a crazy number of expensive
- *    CHECKSIG/CHECKMULTISIG operations
- */
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
-{
-    if (tx.IsCoinBase())
-        return true; // Coinbases don't use vin normally
-
-    for (unsigned int i = 0; i < tx.vin.size(); i++) {
-        const CTxOut& prev = mapInputs.GetOutputFor(tx.vin[i]);
-
-        vector<vector<unsigned char> > vSolutions;
-        txnouttype whichType;
-        // get the scriptPubKey corresponding to this input:
-        const CScript& prevScript = prev.scriptPubKey;
-        if (!Solver(prevScript, whichType, vSolutions))
-            return false;
-
-        // Non-Standard error code (-25) fixed here.
-        // DO NOT USE Transactions with extra stuff in their scriptSigs. They are
-        // non-standard TX, will cause the error code above.
-        if (whichType == TX_SCRIPTHASH) {
-        vector<vector<unsigned char> > stack;
-        // convert the scriptSig into a stack, so we can inspect the redeemScript
-        if (!EvalScript(stack, tx.vin[i].scriptSig, false, BaseSignatureChecker()))
-            return false;
-        if (stack.empty())
-            return false;
-        CScript subscript(stack.back().begin(), stack.back().end());
-        if (subscript.GetSigOpCount(true) > MAX_P2SH_SIGOPS) {
-            return false;
-            }
-        }
-    }
-
-    return true;
-}
-
 unsigned int GetLegacySigOpCount(const CTransaction& tx)
 {
     unsigned int nSigOps = 0;
@@ -839,9 +795,8 @@ bool CheckTransaction(const CTransaction& tx, CValidationState& state)
     unsigned i = 0;
     CAmount nValueOut = 0;
     for (const CTxOut& txout : tx.vout) {
-        //Removed tx out empty in function CheckTransaction , CHECKSEQUENCEVERIFY doesn't have non-empty tx out
-        //if (txout.IsEmpty() && !tx.IsCoinBase() && !tx.IsCoinStake())
-        //    return state.DoS(100, error("CheckTransaction(): txout empty for user transaction"));
+        if (txout.IsEmpty() && !tx.IsCoinBase() && !tx.IsCoinStake())
+            return state.DoS(100, error("CheckTransaction(): txout empty for user transaction"));
         if (txout.nValue < 0)
             return state.DoS(100, error("%s: tx.vout[%d].nValue negative (%s, empty=%s, coinstake=%s)", __func__, i,
                                         txout.ToString(), (txout.IsEmpty()?"yes":"no"), (tx.IsCoinStake()?"yes":"no")),
@@ -1438,7 +1393,6 @@ bool GetTransaction(const uint256& hash, CTransaction& txOut, const Consensus::P
 
     return false;
 }
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -3608,7 +3562,6 @@ CBlockIndex* CBlockIndex::GetAncestor(int height)
             pindexWalk = pindexWalk->pskip;
             heightWalk = heightSkip;
         } else {
-            assert(pindexWalk->pprev);
             pindexWalk = pindexWalk->pprev;
             heightWalk--;
         }

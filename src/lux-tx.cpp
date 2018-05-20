@@ -29,7 +29,7 @@ using namespace std;
 
 static bool fCreateBlank;
 static map<string, UniValue> registers;
-//CClientUIInterface uiInterface;
+CClientUIInterface uiInterface;
 
 static bool AppInitRawTx(int argc, char* argv[])
 {
@@ -435,7 +435,7 @@ static void MutateTxSign(CMutableTransaction& tx, const string& flagStr)
         CTransaction txPrev;
         uint256 prevBlockHash;
         //Find previous transaction with the same output as txNew input
-        if (!GetTransaction(mergedTx.vin[i].prevout.hash, txPrev, Params().GetConsensus(), prevBlockHash)) {
+        if (!GetTransaction(mergedTx.vin[i].prevout.hash, txPrev, Params().GetConsensus(), prevBlockHash, true)) {
             if(fDebug) LogPrintf("CDarkSendPool::MutateTxSign() - Signing - Failed to get previous transaction\n");
             //TODO: probably should raise exception here
             return;
